@@ -8,12 +8,17 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.sql.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ExtractService {
 
@@ -90,10 +95,22 @@ public class ExtractService {
                         .get();
                 Element titleElement = doc.selectFirst("div.title");
                 String title = titleElement.text();
+//                doc.html(title);
+                File file = new File("./text.html");
+                FileOutputStream fos = new FileOutputStream(file, false);
+                OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
+                osw.write(doc.html());
                 Element element = doc.selectFirst(".content");
                 element.select(".title").remove();
                 element.select(".time").remove();
                 String content = element.text();
+                // 抽取文件号：
+                String regex = "〔[0-9]{4}〕[0-9]+号";
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(content);
+                if (matcher.find()) {
+
+                }
                 System.out.println(title);
                 System.out.println(content);
                 System.out.println("---------------------------------------------------------");
