@@ -2,6 +2,7 @@ package com.fzuir.service;
 
 import com.fzuir.utils.DBUtil;
 import com.fzuir.utils.DateUtil;
+import lombok.extern.log4j.Log4j;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
@@ -20,12 +21,14 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Log4j
 public class ExtractService {
-
+    final static String htmlSavePath = "E:\\sts\\csrc\\cfjds";
     final static String userAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36";
     final static int beforeDays = -1;
 
     public void start() {
+        log.info("从数据读取待采集的url来源:");
         // 从数据读取待采集的url来源
         Set<String> sources = DBUtil.getSource();
         for (String source : sources) {
@@ -93,24 +96,27 @@ public class ExtractService {
                 Document doc = Jsoup.connect(url)
                         .userAgent("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36")
                         .get();
+
+                // 保存html到本地
+                removeUseless(doc);
+                DBUtil.saveHtml(doc.html(), url, htmlSavePath);
+                // 获得标题
                 Element titleElement = doc.selectFirst("div.title");
                 String title = titleElement.text();
-//                doc.html(title);
-                File file = new File("./text.html");
-                FileOutputStream fos = new FileOutputStream(file, false);
-                OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
-                osw.write(doc.html());
+                // 获得内容
                 Element element = doc.selectFirst(".content");
                 element.select(".title").remove();
                 element.select(".time").remove();
                 String content = element.text();
-                // 抽取文件号：
+                // 抽取文件号
+                String fileNum = "";
                 String regex = "〔[0-9]{4}〕[0-9]+号";
                 Pattern pattern = Pattern.compile(regex);
                 Matcher matcher = pattern.matcher(content);
                 if (matcher.find()) {
-
+                    fileNum = matcher.group(0);
                 }
+                System.out.println("文件号：" + fileNum);
                 System.out.println(title);
                 System.out.println(content);
                 System.out.println("---------------------------------------------------------");
@@ -118,6 +124,13 @@ public class ExtractService {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void removeUseless(Document doc) {
+        doc.select(".zi_menu").remove();
+        doc.select("img").remove();
+        doc.select(".topbar").remove();
+        doc.select(".sobox").remove();
     }
 
 }
