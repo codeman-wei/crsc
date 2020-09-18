@@ -1,39 +1,39 @@
 package com.fzuir.utils;
 
+import sun.reflect.generics.tree.ClassSignature;
+
 import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DBUtil {
-
     /**
      * 从数据库读url信息
      * @return
      */
-    public static Set<String> getSource() {
+    public static List getSource() {
         Connection con = null;
         PreparedStatement query = null;
         ResultSet result = null;
-        String sql = "select url from origin_url";
-        Set<String> sources = new HashSet<String>();
+        String sql = "select url,library_type,source from origin_url";
+        List sources = new ArrayList(); // 创建列表用于接收数据库返回的内容
         try {
             Class.forName("com.mysql.jdbc.Driver");// 加载Mysql数据驱动
             con = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");// 创建数据连接
             query = con.prepareStatement(sql);
             result = query.executeQuery();
+            int num = result.getMetaData().getColumnCount();// getMetaData获得表结构，getColunmCount获得字段数
             while (result.next()) {
-                String url = result.getString(1);
-                if (url.charAt(url.length() - 1) == '/' || url.charAt(url.length() - 1) == '\\') {
-                    url = url.substring(0,url.length() - 1);
+                Map mapOfColValues = new HashMap(num);
+                for (int i = 1; i<= num; i++) {
+                    mapOfColValues.put(result.getMetaData().getColumnName(i),result.getObject(i)); // 获取字段名及其对应内容
                 }
-                sources.add(url);
+                sources.add(mapOfColValues);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -49,7 +49,46 @@ public class DBUtil {
         return sources;
     }
 
-
+    public static void save2Database(String title,String fileNum,String content,String date,String url,String from,String libtype) throws ClassNotFoundException, SQLException {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try{
+            // 注册数据库的驱动
+            Class.forName("com.mysql.jdbc.Driver");
+            // 获取数据库连接
+            connection = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");
+            // 执行需要执行的语句（？是占位符号，代表一个参数）
+            String sql = "insert into legal_cases(title,document_number,content,pub_date,source,url,library_type) values (?,?,?,?,?,?,?)";
+            // 获取预处理对象,并赋参
+            statement = connection.prepareCall(sql);
+            statement.setString(1,title);
+            statement.setString(2,fileNum);
+            statement.setString(3,content);
+            statement.setString(4,date);
+            statement.setString(5,from);
+            statement.setString(6,url);
+            statement.setString(7,libtype);
+            // 执行sql语句
+            statement.executeUpdate();
+            System.out.println("成功插入数据库");
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            try {
+                // 关闭连接
+                statement.close();
+                connection.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+    }
+    /**
+     * 将数据保存为HTML
+     * @param html
+     * @param url
+     * @param basePath
+     */
     public static void saveHtml(String html, String url, String basePath) {
         String encode = getEncode(html);
         SimpleDateFormat dayformat = new SimpleDateFormat("yyyyMMdd");

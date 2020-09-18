@@ -2,6 +2,8 @@ package com.fzuir.service;
 
 import com.fzuir.utils.DBUtil;
 import com.fzuir.utils.DateUtil;
+import com.sun.javafx.collections.MappingChange;
+import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import lombok.extern.log4j.Log4j;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.StringUtil;
@@ -14,8 +16,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.sql.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.regex.Matcher;
@@ -23,18 +24,27 @@ import java.util.regex.Pattern;
 
 @Log4j
 public class ExtractService {
-    final static String htmlSavePath = "E:\\sts\\csrc\\cfjds";
+    final static String htmlSavePath = "E:\\csrc\\html\\cfjds";
     final static String userAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36";
     final static int beforeDays = -1;
 
     public void start() {
         log.info("从数据读取待采集的url来源:");
-        // 从数据读取待采集的url来源
-        Set<String> sources = DBUtil.getSource();
-        for (String source : sources) {
+        // 从数据读取待采集的url来源,文库类型，来源
+        List sources = DBUtil.getSource();
+        for (Object source : sources) {
             System.out.println("*******************************************************");
-            BlockingQueue<String> pathQueue = getPathQueue(source);
-            collect(source, pathQueue);
+            // 通过key值获取value
+            Object[] value = ((HashMap) source).values().toArray();
+            String url = value[0].toString();
+            String libtype = value[1].toString();
+            String from = value[2].toString();
+            if (url.charAt(url.length() - 1) == '/' || url.charAt(url.length() - 1) == '\\') {
+                    url = url.substring(0, url.length() - 1);
+            }
+            System.out.println(url+libtype+from);
+            BlockingQueue<String> pathQueue = getPathQueue(url);
+            collect(url, pathQueue,libtype,from);
         }
     }
 
@@ -85,7 +95,7 @@ public class ExtractService {
      * 抽取所有队列中url的内容，直接通过标签的特征获取
      * @param pathQueue 资源路径队列
      */
-    public void collect (String baseUrl,BlockingQueue<String> pathQueue) {
+    public void collect (String baseUrl,BlockingQueue<String> pathQueue,String libtype,String from) {
 
         while (pathQueue.size() > 0) {
             String path = pathQueue.poll();
@@ -103,23 +113,43 @@ public class ExtractService {
                 // 获得标题
                 Element titleElement = doc.selectFirst("div.title");
                 String title = titleElement.text();
+                // 获得发布时间
+                Element dateElement = doc.selectFirst("div.time");
+                String date = dateElement.text();
+                String regexd = "[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}";
+                Pattern patternd = Pattern.compile(regexd);
+                Matcher matcherd = patternd.matcher(date);
+                if (matcherd.find()) {
+                    date = matcherd.group(0);
+                }
                 // 获得内容
                 Element element = doc.selectFirst(".content");
                 element.select(".title").remove();
                 element.select(".time").remove();
                 String content = element.text();
-                // 抽取文件号
+                // 抽取文件号，优先在正文中查找，再从标题中抽取
                 String fileNum = "";
-                String regex = "〔[0-9]{4}〕[0-9]+号";
+                // String regex = "〔[0-9]{4}〕[0-9]+号";
+                String regex = ".[0-9]{4}.{1,2}[0-9]*.?号";
                 Pattern pattern = Pattern.compile(regex);
                 Matcher matcher = pattern.matcher(content);
                 if (matcher.find()) {
-                    fileNum = matcher.group(0);
+                    fileNum = matcher.group(0).replace("[","〔").replace("]","〕").replace(" ","");
                 }
-                System.out.println("文件号：" + fileNum);
+                else{
+                    matcher = pattern.matcher(title);
+                    if (matcher.find()) {
+                        fileNum = matcher.group(0).replace("[","〔").replace("]","〕").replace(" ","");
+                    }
+                    else
+                        fileNum = "未识别";
+                }
+                System.out.println("文号：" + fileNum);
                 System.out.println(title);
                 System.out.println(content);
                 System.out.println("---------------------------------------------------------");
+                // 保存到数据库
+                DBUtil.save2Database(title,fileNum,content,date,url,from,libtype);
             } catch (Exception e) {
                 e.printStackTrace();
             }
