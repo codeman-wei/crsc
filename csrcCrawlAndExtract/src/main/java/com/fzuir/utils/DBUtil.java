@@ -1,6 +1,7 @@
 package com.fzuir.utils;
 
-import sun.reflect.generics.tree.ClassSignature;
+import com.fzuir.domain.HtmlContent;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
@@ -11,6 +12,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 public class DBUtil {
     /**
      * 从数据库读url信息
@@ -49,7 +51,7 @@ public class DBUtil {
         return sources;
     }
 
-    public static void save2Database(String title,String fileNum,String content,String date,String url,String from,String libtype) throws ClassNotFoundException, SQLException {
+    public static void save2Database (HtmlContent result) {
         Connection connection = null;
         PreparedStatement statement = null;
         try{
@@ -61,16 +63,16 @@ public class DBUtil {
             String sql = "insert into legal_cases(title,document_number,content,pub_date,source,url,library_type) values (?,?,?,?,?,?,?)";
             // 获取预处理对象,并赋参
             statement = connection.prepareCall(sql);
-            statement.setString(1,title);
-            statement.setString(2,fileNum);
-            statement.setString(3,content);
-            statement.setString(4,date);
-            statement.setString(5,from);
-            statement.setString(6,url);
-            statement.setString(7,libtype);
+            statement.setString(1, result.getTitle());
+            statement.setString(2, result.getFileNum());
+            statement.setString(3, result.getContent());
+            statement.setString(4, result.getDate());
+            statement.setString(5, result.getFrom());
+            statement.setString(6, result.getUrl());
+            statement.setString(7, result.getLibtype());
             // 执行sql语句
             statement.executeUpdate();
-            System.out.println("成功插入数据库");
+            log.info("add result to database: " + result.toString());
         }catch (Exception e) {
             e.printStackTrace();
         }finally {
@@ -83,13 +85,14 @@ public class DBUtil {
             }
         }
     }
+
     /**
      * 将数据保存为HTML
      * @param html
      * @param url
      * @param basePath
      */
-    public static void saveHtml(String html, String url, String basePath) {
+    public static void saveHtml(String html, String url, String basePath) throws UnsupportedEncodingException {
         String encode = getEncode(html);
         SimpleDateFormat dayformat = new SimpleDateFormat("yyyyMMdd");
         dayformat.setTimeZone(TimeZone.getTimeZone("GMT+8"));
@@ -98,23 +101,22 @@ public class DBUtil {
         checkPath(mkdirPath);
         String filepath = mkdirPath+"/"+getTimestamp() + "_" + getRandomString() + "_" + getHost(url) + ".html";
         // 输出流保存文件
-        FileOutputStream fout = null;
-        FileChannel fc = null;
-        FileLock fl = null;
+        byte[] bs = new byte[1024];
+        int len;
+        OutputStream os = null;
+        InputStream is = null;
         try {
-            fout = new FileOutputStream(filepath);
-            fc = fout.getChannel();
-            fl = fc.tryLock();
-            OutputStreamWriter out = new OutputStreamWriter(fout, encode);
-            out.write(url+System.getProperty("line.separator"));
-            out.write(html);
+            is = new ByteArrayInputStream(html.getBytes(encode));
+            os = new FileOutputStream(filepath);
+            while ((len = is.read(bs)) != -1) {
+                os.write(bs, 0, len);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
-                if (fl != null) fl.close();
-                if (fc != null) fc.close();
-                if (fout != null) fout.close();
+                if (is != null) is.close();
+                if (os != null) os.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -129,18 +131,20 @@ public class DBUtil {
      * */
     public static String getHost(String url){
         String startUrl = url;
+
         startUrl = startUrl.replace("http://", "");
         startUrl = startUrl.replace("https://", "");
+        startUrl = startUrl.replace('/', '.');
         int indexOfSlash = startUrl.indexOf("/");
-        if(indexOfSlash != -1)
-        {
-            startUrl = startUrl.substring(0,indexOfSlash);
-        }
-        int indexOfPoint = startUrl.indexOf(".");
-        if(indexOfPoint != -1)
-        {
-            startUrl = startUrl.substring(indexOfPoint+1,startUrl.length());
-        }
+//        if(indexOfSlash != -1)
+//        {
+//            startUrl = startUrl.substring(0,indexOfSlash);
+//        }
+//        int indexOfPoint = startUrl.indexOf(".");
+//        if(indexOfPoint != -1)
+//        {
+//            startUrl = startUrl.substring(indexOfPoint+1,startUrl.length());
+//        }
         return startUrl;
     }
 

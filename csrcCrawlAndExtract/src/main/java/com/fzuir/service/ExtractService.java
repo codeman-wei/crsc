@@ -1,9 +1,8 @@
 package com.fzuir.service;
 
+import com.fzuir.domain.HtmlContent;
 import com.fzuir.utils.DBUtil;
 import com.fzuir.utils.DateUtil;
-import com.sun.javafx.collections.MappingChange;
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import lombok.extern.log4j.Log4j;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.StringUtil;
@@ -11,11 +10,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.sql.*;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -33,7 +28,7 @@ public class ExtractService {
         // 从数据读取待采集的url来源,文库类型，来源
         List sources = DBUtil.getSource();
         for (Object source : sources) {
-            System.out.println("*******************************************************");
+//            System.out.println("*******************************************************");
             // 通过key值获取value
             Object[] value = ((HashMap) source).values().toArray();
             String url = value[0].toString();
@@ -42,7 +37,7 @@ public class ExtractService {
             if (url.charAt(url.length() - 1) == '/' || url.charAt(url.length() - 1) == '\\') {
                     url = url.substring(0, url.length() - 1);
             }
-            System.out.println(url+libtype+from);
+//            System.out.println(url+libtype+from);
             BlockingQueue<String> pathQueue = getPathQueue(url);
             collect(url, pathQueue,libtype,from);
         }
@@ -95,13 +90,16 @@ public class ExtractService {
      * 抽取所有队列中url的内容，直接通过标签的特征获取
      * @param pathQueue 资源路径队列
      */
-    public void collect (String baseUrl,BlockingQueue<String> pathQueue,String libtype,String from) {
+    public void collect (String baseUrl, BlockingQueue<String> pathQueue, String libtype, String from) {
 
         while (pathQueue.size() > 0) {
             String path = pathQueue.poll();
             if (StringUtil.isBlank(path)) continue;
             // 待爬取页面完整url
             String url = baseUrl + path;
+            if (url.equals("http://www.csrc.gov.cn/pub/hunan/hnxzcf/201712/t20171229_329854.htm")) {
+                System.out.println("is he ? ");
+            }
             try {
                 Document doc = Jsoup.connect(url)
                         .userAgent("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36")
@@ -144,12 +142,9 @@ public class ExtractService {
                     else
                         fileNum = "未识别";
                 }
-                System.out.println("文号：" + fileNum);
-                System.out.println(title);
-                System.out.println(content);
-                System.out.println("---------------------------------------------------------");
+                HtmlContent result = new HtmlContent(url, title, fileNum, content, date, from, libtype);
                 // 保存到数据库
-                DBUtil.save2Database(title,fileNum,content,date,url,from,libtype);
+                DBUtil.save2Database(result);
             } catch (Exception e) {
                 e.printStackTrace();
             }
