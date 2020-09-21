@@ -1,6 +1,7 @@
 package com.fzuir.utils;
 
 import com.fzuir.domain.HtmlContent;
+import com.fzuir.domain.Source;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
@@ -14,28 +15,31 @@ import java.util.regex.Pattern;
 
 @Slf4j
 public class DBUtil {
+    private final static String database = Configuration.getProperty("database.name");
+    private final static String username = Configuration.getProperty("database.username");
+    private final static String password = Configuration.getProperty("database.password");
     /**
      * 从数据库读url信息
      * @return
      */
-    public static List getSource() {
+    public static List<Source> getSource() {
+        log.info("**************begin to read sources from database");
+//        String database = Configuration.getProperty("database.name");
+//        String username = Configuration.getProperty("database.username");
+//        String password = Configuration.getProperty("database.password");
         Connection con = null;
         PreparedStatement query = null;
         ResultSet result = null;
         String sql = "select url,library_type,source from origin_url";
-        List sources = new ArrayList(); // 创建列表用于接收数据库返回的内容
+        List<Source> sources = new ArrayList<>(40);
         try {
             Class.forName("com.mysql.jdbc.Driver");// 加载Mysql数据驱动
-            con = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");// 创建数据连接
+            con = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/" + database + "?useUnicode=true&characterEncoding=UTF-8", username, password);// 创建数据连接
             query = con.prepareStatement(sql);
             result = query.executeQuery();
-            int num = result.getMetaData().getColumnCount();// getMetaData获得表结构，getColunmCount获得字段数
+
             while (result.next()) {
-                Map mapOfColValues = new HashMap(num);
-                for (int i = 1; i<= num; i++) {
-                    mapOfColValues.put(result.getMetaData().getColumnName(i),result.getObject(i)); // 获取字段名及其对应内容
-                }
-                sources.add(mapOfColValues);
+                sources.add(new Source(result.getString(1), result.getString(2), result.getString(3)));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,8 +52,10 @@ public class DBUtil {
                 throwables.printStackTrace();
             }
         }
+        log.info("***********Get source completed, there are [ " + sources.size() + " ] sources need to be extracted");
         return sources;
     }
+
 
     public static void save2Database (HtmlContent result) {
         Connection connection = null;
@@ -86,116 +92,10 @@ public class DBUtil {
         }
     }
 
-    /**
-     * 将数据保存为HTML
-     * @param html
-     * @param url
-     * @param basePath
-     */
-    public static void saveHtml(String html, String url, String basePath) throws UnsupportedEncodingException {
-        String encode = getEncode(html);
-        SimpleDateFormat dayformat = new SimpleDateFormat("yyyyMMdd");
-        dayformat.setTimeZone(TimeZone.getTimeZone("GMT+8"));
-        String date = dayformat.format(System.currentTimeMillis());
-        String mkdirPath = basePath + "/" + date;
-        checkPath(mkdirPath);
-        String filepath = mkdirPath+"/"+getTimestamp() + "_" + getRandomString() + "_" + getHost(url) + ".html";
-        // 输出流保存文件
-        byte[] bs = new byte[1024];
-        int len;
-        OutputStream os = null;
-        InputStream is = null;
-        try {
-            is = new ByteArrayInputStream(html.getBytes(encode));
-            os = new FileOutputStream(filepath);
-            while ((len = is.read(bs)) != -1) {
-                os.write(bs, 0, len);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (is != null) is.close();
-                if (os != null) os.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
 
 
-    /**
-     * 获取主机名
-     * 参数1：url为输入的url全名
-     * */
-    public static String getHost(String url){
-        String startUrl = url;
-
-        startUrl = startUrl.replace("http://", "");
-        startUrl = startUrl.replace("https://", "");
-        startUrl = startUrl.replace('/', '.');
-        int indexOfSlash = startUrl.indexOf("/");
-//        if(indexOfSlash != -1)
-//        {
-//            startUrl = startUrl.substring(0,indexOfSlash);
-//        }
-//        int indexOfPoint = startUrl.indexOf(".");
-//        if(indexOfPoint != -1)
-//        {
-//            startUrl = startUrl.substring(indexOfPoint+1,startUrl.length());
-//        }
-        return startUrl;
-    }
 
 
-    /**
-     * 通过查找charset属性找到html的编码
-     * @param html  待查找编码的html内容
-     * @return
-     */
-    public static String getEncode(String html) {
-
-        String charset = "";
-        String regEx = "(charset=(\")?[a-zA-Z0-9-]*)";
-
-        Pattern pattern=Pattern.compile(regEx, Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(html);
-        if (matcher.find()) {
-            charset = matcher.group(0).replaceAll("\"", "");
-            String[] splits = charset.split("=");
-            if (splits.length > 1) charset = splits[1];
-        }
-        if(charset == "" || charset == null || charset.equals(""))
-        {
-            return "gbk";
-        } else {
-            return charset;
-        }
-    }
 
 
-    public static void checkPath(String path) {
-        File file = new File(path);
-        if(!file.exists() && !file .isDirectory())
-        {
-            file.mkdirs();
-        }
-    }
-
-
-    // 获取时间戳
-    public static String getTimestamp(){
-        return Long.toString(System.currentTimeMillis());
-    }
-
-
-    // 获得五位随机数
-    private static String getRandomString() {
-        String s = "";
-        for(int i=0; i<5; ++i) {
-            s += (int)(Math.random()*10);
-        }
-        return s;
-    }
 }

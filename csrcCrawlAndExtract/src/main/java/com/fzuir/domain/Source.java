@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Source {
-    private Integer id;
     private String url;
-    private String source;
+    private String from;
     private String libraryType;
 }
