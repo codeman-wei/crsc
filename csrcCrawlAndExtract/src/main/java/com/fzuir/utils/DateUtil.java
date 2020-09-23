@@ -1,6 +1,7 @@
 package com.fzuir.utils;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.helper.StringUtil;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -66,5 +67,21 @@ public class DateUtil {
         } else {
             return "";
         }
+    }
+
+
+    /**
+     * 从文字中抽取出日期
+     * @param dataStr
+     * @return
+     */
+    public static String extractDate(String dataStr) {
+        String regex = "[0-9]{4}.*[0-9]{1,2}.*[0-9]{1,2}";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(dataStr);
+        if (matcher.find()) {
+            return cleanDate(matcher.group(0));
+        }
+        return "";
     }
 }
