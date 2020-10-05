@@ -3,3 +3,5 @@
 *.iml
 */target/*
 */*.iml
+*.xml
+windLegalCase/.idea/.name
