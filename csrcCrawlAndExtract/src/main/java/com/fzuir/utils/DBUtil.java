@@ -1,9 +1,7 @@
 package com.fzuir.utils;
 
 import com.fzuir.domain.HtmlContent;
-import com.fzuir.domain.PostData;
 import com.fzuir.domain.Source;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
@@ -15,22 +13,20 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Log4j
+@Slf4j
 public class DBUtil {
-    //    private final static String database = Configuration.getProperty("database.name");
-//    private final static String username = Configuration.getProperty("database.username");
-//    private final static String password = Configuration.getProperty("database.password");
-    private final static String database = "csrc_test";
-    private final static String username = "root";
-    private final static String password = "123456";
-
-
+    private final static String database = Configuration.getProperty("database.name");
+    private final static String username = Configuration.getProperty("database.username");
+    private final static String password = Configuration.getProperty("database.password");
     /**
      * 从数据库读url信息
      * @return
      */
     public static List<Source> getSource() {
         log.info("**************begin to read sources from database");
+//        String database = Configuration.getProperty("database.name");
+//        String username = Configuration.getProperty("database.username");
+//        String password = Configuration.getProperty("database.password");
         Connection con = null;
         PreparedStatement query = null;
         ResultSet result = null;
@@ -58,42 +54,6 @@ public class DBUtil {
         }
         log.info("***********Get source completed, there are [ " + sources.size() + " ] sources need to be extracted");
         return sources;
-    }
-
-
-    /**
-     * 从数据库读url信息
-     * @return
-     */
-    public static List<PostData> getPostData() {
-        log.info("**************begin to read postData from database");
-        Connection con = null;
-        PreparedStatement query = null;
-        ResultSet result = null;
-        String sql = "select schword, searchword, source, libary_type from post_data";
-        List<PostData> postDataList = new ArrayList<>(10);
-        try {
-            Class.forName("com.mysql.jdbc.Driver");// 加载Mysql数据驱动
-            con = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/" + database + "?useUnicode=true&characterEncoding=UTF-8", username, password);// 创建数据连接
-            query = con.prepareStatement(sql);
-            result = query.executeQuery();
-
-            while (result.next()) {
-                postDataList.add(new PostData(result.getString(1), result.getString(2), result.getString(3), result.getString(4)));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }finally {
-            try {
-                if (result != null) result.close();
-                if (query != null) query.close();
-                if (con != null) con.close();
-            } catch (SQLException throwables) {
-                throwables.printStackTrace();
-            }
-        }
-        log.info("***********Get postData completed, there are [ " + postDataList.size() + " ] post need to be try");
-        return postDataList;
     }
 
 
