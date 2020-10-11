@@ -11,4 +11,5 @@ public class DBCompany {
     private Integer companyId;
     private String companyName;
     private String newestDocDate;
+    private Integer numOfCrawl;
 }

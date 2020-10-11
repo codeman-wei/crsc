@@ -170,7 +170,8 @@ public class WindUtil {
      * 则说明token过期，或错误，
      * 需要通过上面接口重新取得token
      */
-    public static int queryCorpInfo(CloseableHttpClient httpClient, String apiId, String windId, String token, int pageNum, int pageSize, DBCompany company) throws Exception {
+    public static int
+    queryCorpInfo(CloseableHttpClient httpClient, String apiId, String windId, String token, int pageNum, int pageSize, DBCompany company,String newestDate) throws Exception {
         String url = new StringBuilder(BASE_URL)
                 .append("/corpinfo/").append(apiId)
                 .append("?token=")
@@ -198,28 +199,22 @@ public class WindUtil {
                 total = (Integer) searchResult.get("total");
                 // 构建记录的JSONArray数组
                 JSONArray items = (JSONArray) searchResult.get("items");
-                // 保存记录的最新时间
-                String newestDate = company.getNewestDocDate();
                 // 若不存在记录则仅更新编号
-                if (items.isEmpty()){
-                    DBUtil.updateNewestDocDate(company,company.getNewestDocDate(),windId);
-                } else{
+                if (!items.isEmpty()){
                     for (Object item : items) {
                         ItemInfo value = JSON.parseObject(item.toString(), ItemInfo.class);
                         String newdate = value.getJudgeDate();
                         if (newdate.equals("") || newdate == null) {
-                            log.warn("记录("+value.toString()+")的裁判时间为空值");
+                            log.warn("记录["+value.getCaseName()+"|"+value.getCaseId()+"]的裁判时间为空值,处理:直接插入");
                             // 未知时间为保证数据的完整性，直接插入数据库
                             DBUtil.save2Database(value, company.getCompanyId());
                         } else{
-                            if (compareDate(newdate,company.getNewestDocDate())){
+                            if (compareDate(newdate,newestDate)){
                                 // 将所有的新数据保存到数据库
                                 DBUtil.save2Database(value, company.getCompanyId());
                                 // 查找第一页的最新时间即为最新时间
-                                if (pageNum == 1 && compareDate(newdate,newestDate)){
-                                    newestDate = newdate;
-                                    // 更新数据库的最新时间
-                                    DBUtil.updateNewestDocDate(company,newestDate,windId);
+                                if (pageNum == 1 && compareDate(newdate,company.getNewestDocDate())){
+                                    company.setNewestDocDate(newdate);
                                 }
                             }
                             else

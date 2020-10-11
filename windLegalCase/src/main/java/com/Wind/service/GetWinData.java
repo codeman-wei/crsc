@@ -9,6 +9,7 @@ import org.apache.http.impl.client.HttpClients;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
 @Log4j
 public class GetWinData {
@@ -32,19 +33,25 @@ public class GetWinData {
         int pageNum = 1;
         int pageSize = 50;
         for (DBCompany company : companyLists){
+            // 保存数据库中记录的最新时间
+            String newestdate = company.getNewestDocDate();
             // 通过token调取搜索接口得到windId
             String windId = WindUtil.fetchWindId(httpClient, token, company.getCompanyName());
             if (windId == null) {
-                log.info("公司"+company.getCompanyName()+"的WindId不存在/获取失败（详情请看错误日志）,跳过");
+                log.info("公司"+company.getCompanyName()+"的WindId不存在,跳过");
+                // 加浏览次数
+                company.setNumOfCrawl(company.getNumOfCrawl()+1);
+                DBUtil.updateNewestDocDate(company, null);
                 continue;
             }
             //判断是否存在下一页,默认存在(1存在，不存在，403重新获取token)
             int nextFlag = 1;
             // 由windId查询相关接口
             while (nextFlag > 0) {
-                // 获取每一页数据前休息1min
+                // 获取每一页数据前休息0.5~2min
+                Random rand = new Random();
                 try {
-                    Thread.sleep(6000);
+                    Thread.sleep((rand.nextInt(4) + 1)*30000);
                 } catch (InterruptedException e) {
                     // e.printStackTrace();
                     log.warn("程序休眠异常");
@@ -55,13 +62,13 @@ public class GetWinData {
                     token = WindUtil.fetchToken(httpClient, user, verifyCode);
                     windId = WindUtil.fetchWindId(httpClient, token, company.getCompanyName());
                     if (windId == null) {
-                        log.info("公司:"+company.getCompanyName()+"的WindId不存在/获取失败（详情请看错误日志）,跳过");
+                        log.info("公司:"+company.getCompanyName()+"的WindId不存在,处理:跳过");
                         break;
                     } else
                         continue;
                 }
                 // 获取编号为winId公司的第pageNum页内容,并判断是否存在下一页
-                nextFlag = WindUtil.queryCorpInfo(httpClient, apiId, windId, token, pageNum, pageSize, company);
+                nextFlag = WindUtil.queryCorpInfo(httpClient, apiId, windId, token, pageNum, pageSize, company, newestdate);
                 switch (nextFlag){
                     case 403:
                         // 获取的token过期，应重新获取
@@ -97,6 +104,9 @@ public class GetWinData {
                 }
                 pageNum++;
             }
+            // 更新文书最新时间以及爬取次数
+            company.setNumOfCrawl(company.getNumOfCrawl()+1);
+            DBUtil.updateNewestDocDate(company,windId);
             // 初始化页数
             pageNum = 1;
             pageSize = 50;

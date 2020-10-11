@@ -25,7 +25,7 @@ class DBUtilTest {
         Integer companyId = 21;
         result.setCorpName("corpName");
         result.setCaseName("caseName");
-        result.setCaseId("caseId1");
+        result.setCaseId("caseId");
         result.setCaseReason("caseReason");
         result.setCaseAmount("caseAmount");
         result.setPlaintiff("plaintiff");
@@ -45,10 +45,9 @@ class DBUtilTest {
     @Test
     void updateNewestDocDate(){
         System.out.println("开始测试");
-        DBCompany testCompany = new DBCompany(8,"百度","2020-01-01");
+        DBCompany testCompany = new DBCompany(8,"百度","2020-01-01",0);
         String WindId = "123456789";
-        String newestDate = "2020-01-02";
-        DBUtil.updateNewestDocDate(testCompany,newestDate,WindId);
+        DBUtil.updateNewestDocDate(testCompany,WindId);
     }
 
 }

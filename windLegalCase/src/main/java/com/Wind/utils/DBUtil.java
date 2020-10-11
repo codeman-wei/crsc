@@ -17,8 +17,7 @@ public class DBUtil {
         Connection con = null;
         PreparedStatement query = null;
         ResultSet result = null;
-        String sql = "select id,company_name,newest_doc_date from company_list_test";  // 测试公司列表
-        // String sql = "select id,company_name,newest_doc_date from company_list"; // 实际公司列表
+        String sql = "select id,company_name,newest_doc_date,num_of_crawl from company_list WHERE num_of_crawl = (SELECT min(num_of_crawl) FROM company_list);";
         // 创建列表用于接收数据库返回的内容
         ArrayList<DBCompany> companyList = new ArrayList<>();
         try {
@@ -30,7 +29,7 @@ public class DBUtil {
             // 执行sql语句
             result = query.executeQuery();
             while (result.next()) {
-                DBCompany item = new DBCompany(result.getInt("id"),result.getString("company_name"),result.getString("newest_doc_date"));
+                DBCompany item = new DBCompany(result.getInt("id"),result.getString("company_name"),result.getString("newest_doc_date"),result.getInt("num_of_crawl"));
                 companyList.add(item);
             }
         } catch (Exception e) {
@@ -61,8 +60,8 @@ public class DBUtil {
             // 获取数据库连接
             connection = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8",
                     "root", "123456");
-            // 执行需要执行的语句（？是占位符号，代表一个参数）
-            String sql ="insert into wind_judge_doc(company_id,corp_name,case_name,case_id,case_reason,case_amount,plaintiff," +
+            // 执行需要执行的语句（？是占位符号，代表一个参数）,数据库需要建立唯一联合索引实现不重复插入
+            String sql ="insert ignore into wind_judge_doc(company_id,corp_name,case_name,case_id,case_reason,case_amount,plaintiff," +
                     "defendant,agent,third_parties,judge_result,judge_detail,judge_date,province,court,pub_date,doc_type) values " +
                     "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             // 获取预处理对象,并赋参
@@ -86,14 +85,10 @@ public class DBUtil {
             statement.setString(17, result.getDocType());
             // 执行sql语句
             statement.executeUpdate();
-            log.info("Insert result to database: " + result.toString());
+            // log.info("Insert result to database: " + result.toString());
         }catch (Exception e) {
             // e.printStackTrace();
-            // 判断是否为重复插入异常
-            if (e.toString().contains("Unique_index"))
-                log.warn("记录:"+result.toString()+"与数据库中的数据重复,不再插入");
-            else
-                log.error("记录"+result.toString()+"插入数据库失败");
+            log.error("记录"+result.toString()+"插入数据库失败");
         }finally {
             try {
                 // 关闭连接
@@ -106,10 +101,10 @@ public class DBUtil {
     }
 
     /**
-     * 更新公司的最新文书时间
+     * 更新公司的最新文书时间以及爬取次数
      * @param company
      */
-    public static void updateNewestDocDate (DBCompany company,String newestDate,String WindId) {
+    public static void updateNewestDocDate (DBCompany company,String WindId) {
         Connection connection = null;
         PreparedStatement statement = null;
         try{
@@ -118,15 +113,16 @@ public class DBUtil {
             // 获取数据库连接
             connection = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");
             // 执行需要执行的语句（？是占位符号，代表一个参数）
-            String sql = "update company_list_test set wind_id = ?, newest_doc_date = ? where id = ?";
+            String sql = "update company_list set wind_id = ?, newest_doc_date = ?, num_of_crawl = ? where id = ?";
             // 获取预处理对象,并赋参
             statement = connection.prepareCall(sql);
             statement.setString(1,WindId);
-            statement.setString(2,newestDate);
-            statement.setInt(3,company.getCompanyId());
+            statement.setString(2,company.getNewestDocDate());
+            statement.setInt(3,company.getNumOfCrawl());
+            statement.setInt(4,company.getCompanyId());
             // 执行sql语句
             statement.executeUpdate();
-            log.info("update result to database: " + company.toString());
+            log.info("更新公司列表，更新内容:" + company.toString());
         }catch (Exception e) {
             e.printStackTrace();
         }finally {
