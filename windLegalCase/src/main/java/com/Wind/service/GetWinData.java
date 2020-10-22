@@ -20,7 +20,7 @@ public class GetWinData {
      * @param apiId
      * @throws Exception
      */
-    public static void getWindData(String user,String pwd,String apiId) throws Exception {
+    public static void getWindData(String user,String pwd,String apiId,String base_url) throws Exception {
         // 初始化列表公司名称
         List<DBCompany> companyLists = DBUtil.getCompanyList();
         // 创建连接
@@ -28,7 +28,7 @@ public class GetWinData {
         // 将密码加密生成识别码（MD5）
         String verifyCode = WindUtil.digestString(pwd);
         // 通过用户名和识别码得到token，调用其他接口时如果errorCode = 403 时，可以尝试再次取得token
-        String token = WindUtil.fetchToken(httpClient, user, verifyCode);
+        String token = WindUtil.fetchToken(httpClient, user, verifyCode, base_url);
         // 定义展示的格式:pageIndex显示第几页,pageSize每页显示的条数
         int pageNum = 1;
         int pageSize = 50;
@@ -36,7 +36,7 @@ public class GetWinData {
             // 保存数据库中记录的最新时间
             String newestdate = company.getNewestDocDate();
             // 通过token调取搜索接口得到windId
-            String windId = WindUtil.fetchWindId(httpClient, token, company.getCompanyName());
+            String windId = WindUtil.fetchWindId(httpClient, token, company.getCompanyName(), base_url);
             if (windId == null) {
                 log.info("公司"+company.getCompanyName()+"的WindId不存在,跳过");
                 // 加浏览次数
@@ -59,8 +59,8 @@ public class GetWinData {
                 // token失效处理
                 if (windId.equals("ErrorCode=403")) {
                     // 获取的token过期，应重新获取
-                    token = WindUtil.fetchToken(httpClient, user, verifyCode);
-                    windId = WindUtil.fetchWindId(httpClient, token, company.getCompanyName());
+                    token = WindUtil.fetchToken(httpClient, user, verifyCode, base_url);
+                    windId = WindUtil.fetchWindId(httpClient, token, company.getCompanyName(), base_url);
                     if (windId == null) {
                         log.info("公司:"+company.getCompanyName()+"的WindId不存在,处理:跳过");
                         break;
@@ -68,11 +68,11 @@ public class GetWinData {
                         continue;
                 }
                 // 获取编号为winId公司的第pageNum页内容,并判断是否存在下一页
-                nextFlag = WindUtil.queryCorpInfo(httpClient, apiId, windId, token, pageNum, pageSize, company, newestdate);
+                nextFlag = WindUtil.queryCorpInfo(httpClient, apiId, windId, token, pageNum, pageSize, company, newestdate, base_url);
                 switch (nextFlag){
                     case 403:
                         // 获取的token过期，应重新获取
-                        token = WindUtil.fetchToken(httpClient, user, verifyCode);
+                        token = WindUtil.fetchToken(httpClient, user, verifyCode, base_url);
                         continue;
                     case 300001:
                         log.warn("获取企业:"+company.getCompanyName()+"第"+ pageNum + "页内容失败("+ pageSize +"条/页),错误代码:" + 300001 + ",错误信息:请求失败");

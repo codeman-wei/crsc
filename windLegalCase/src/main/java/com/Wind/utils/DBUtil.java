@@ -136,4 +136,34 @@ public class DBUtil {
         }
     }
 
+    /**
+     * 更新新增公司的爬取次数
+     */
+    public static void updateCrawlNum () {
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try{
+            // 注册数据库的驱动
+            Class.forName("com.mysql.jdbc.Driver");
+            // 获取数据库连接
+            connection = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");
+            // 执行需要执行的语句
+            String sql = "update company_list set num_of_crawl = (SELECT a.maxnum FROM (SELECT MAX(num_of_crawl)-1 maxnum FROM company_list) a) where num_of_crawl = (SELECT b.minnum FROM (SELECT MIN(num_of_crawl) minnum FROM company_list) b);";
+            // 获取预处理对象,并赋参
+            statement = connection.prepareCall(sql);
+            // 执行sql语句
+            statement.executeUpdate();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            try {
+                // 关闭连接
+                statement.close();
+                connection.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+    }
+
 }

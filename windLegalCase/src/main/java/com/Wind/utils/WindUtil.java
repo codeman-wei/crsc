@@ -22,7 +22,7 @@ import java.util.Date;
 @Log4j
 public class WindUtil {
 
-    private static final String BASE_URL = "http://eapi.wind.com.cn/wind.ent.risk/openapi";
+    // private static final String BASE_URL = "http://eapi.wind.com.cn/wind.ent.risk/openapi";
 
     public static final byte[] getMd5Digest(String s) {
         try {
@@ -72,7 +72,7 @@ public class WindUtil {
      * 请务必注意：不要每次调用接口都重新取得token，
      * 太多调用会被认为账户异常，最终影响wft账户的正常使用
      */
-    public static String fetchToken(CloseableHttpClient httpClient, String user, String verifyCode) throws Exception {
+    public static String fetchToken(CloseableHttpClient httpClient, String user, String verifyCode, String BASE_URL) throws Exception {
         String url = new StringBuilder(BASE_URL)
                 .append("/getToken?")
                 .append("windUser=")
@@ -117,7 +117,7 @@ public class WindUtil {
      * 需要通过上面接口重新取得token
      *
      */
-    public static String fetchWindId(CloseableHttpClient httpClient, String token, String corpName) throws Exception {
+    public static String fetchWindId(CloseableHttpClient httpClient, String token, String corpName, String BASE_URL) throws Exception {
         String url = new StringBuilder(BASE_URL)
                 .append("/searchcorplist?")
                 .append("token=")
@@ -171,7 +171,7 @@ public class WindUtil {
      * 需要通过上面接口重新取得token
      */
     public static int
-    queryCorpInfo(CloseableHttpClient httpClient, String apiId, String windId, String token, int pageNum, int pageSize, DBCompany company,String newestDate) throws Exception {
+    queryCorpInfo(CloseableHttpClient httpClient, String apiId, String windId, String token, int pageNum, int pageSize, DBCompany company,String newestDate,String BASE_URL) throws Exception {
         String url = new StringBuilder(BASE_URL)
                 .append("/corpinfo/").append(apiId)
                 .append("?token=")
@@ -257,7 +257,7 @@ public class WindUtil {
      * 核查类接口调用此接口
      *
      */
-    private static void verifyCorpInfo(CloseableHttpClient httpClient, String apiId, String options, String windId, String token) throws Exception {
+    private static void verifyCorpInfo(CloseableHttpClient httpClient, String apiId, String options, String windId, String token, String BASE_URL) throws Exception {
         String url = new StringBuilder(BASE_URL)
                 .append("/verifyCorpInfo/").append(apiId)
                 .append("?token=")
