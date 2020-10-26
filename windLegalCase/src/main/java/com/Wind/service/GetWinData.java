@@ -48,10 +48,10 @@ public class GetWinData {
             int nextFlag = 1;
             // 由windId查询相关接口
             while (nextFlag > 0) {
-                // 获取每一页数据前休息0.5~2min
+                // 获取每一页数据前休息5s~10s
                 Random rand = new Random();
                 try {
-                    Thread.sleep((rand.nextInt(4) + 1)*30000);
+                    Thread.sleep((rand.nextInt(5) + 5)*1000);
                 } catch (InterruptedException e) {
                     // e.printStackTrace();
                     log.warn("程序休眠异常");
