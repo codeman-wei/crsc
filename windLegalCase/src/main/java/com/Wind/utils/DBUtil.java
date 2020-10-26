@@ -148,7 +148,7 @@ public class DBUtil {
             // 获取数据库连接
             connection = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");
             // 执行需要执行的语句
-            String sql = "update company_list set num_of_crawl = (SELECT a.maxnum FROM (SELECT MAX(num_of_crawl)-1 maxnum FROM company_list) a) where num_of_crawl = (SELECT b.minnum FROM (SELECT MIN(num_of_crawl) minnum FROM company_list) b);";
+            String sql = "update company_list a,(SELECT MAX(num_of_crawl) maxnum FROM company_list) b,(SELECT MIN(num_of_crawl) minnum FROM company_list) c set a.num_of_crawl = b.maxnum - 1 where b.maxnum <> c.minnum AND a.num_of_crawl = c.minnum;";
             // 获取预处理对象,并赋参
             statement = connection.prepareCall(sql);
             // 执行sql语句
