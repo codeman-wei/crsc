@@ -1,5 +1,6 @@
 package com.Wind.service;
 
+import com.Wind.domain.DBAccount;
 import com.Wind.domain.DBCompany;
 import com.Wind.utils.DBUtil;
 import com.Wind.utils.WindUtil;
@@ -15,12 +16,27 @@ import java.util.Random;
 public class GetWinData {
     /**
      * 读取数据库公司列表，获取Wind的裁判文书
-     * @param user
-     * @param pwd
-     * @param apiId
      * @throws Exception
      */
-    public static void getWindData(String user,String pwd,String apiId,String base_url) throws Exception {
+    public static void getWindData() throws Exception {
+        String user = "W8750909462";
+        String pwd = "Fzuir070399";
+        String apiId = "D002";
+        String base_url = "http://eapi.wind.com.cn/wind.ent.risk/openapi";
+        // 初始化账号
+        List<DBAccount> accountList = DBUtil.getWindAccount();
+        if (accountList.size() == 0){
+            log.error("不存在有效账户");
+            System.out.println("不存在有效账户");
+        }
+        else {
+            DBAccount windaccount = accountList.get(0);
+            // 确定用户以及密码
+            user = windaccount.getAccount(); // 测试账户
+            pwd = windaccount.getPassword(); // 测试账户密码
+            apiId = windaccount.getDocType(); // 确定获取资料的类型，"D002"为裁判文书
+            base_url = windaccount.getPostUrl(); // 确定请求链接
+        }
         // 初始化列表公司名称
         List<DBCompany> companyLists = DBUtil.getCompanyList();
         // 创建连接

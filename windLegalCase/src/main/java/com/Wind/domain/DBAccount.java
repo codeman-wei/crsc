@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DBCompany {
-    private Integer companyId;
-    private String companyName;
-    private String newestDocDate;
-    private Integer numOfCrawl;
-}
+public class DBAccount {
+    private String account;
+    private String password;
+    private String postUrl;
+    private String docType;
 
+}

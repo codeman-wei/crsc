@@ -1,5 +1,6 @@
 package com.Wind.utils;
 
+import com.Wind.domain.DBAccount;
 import com.Wind.domain.DBCompany;
 import com.Wind.domain.ItemInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,43 @@ public class DBUtil {
             }
         }
         return companyList;
+    }
+
+    /**
+     * 从数据库读取Wind账号
+     * @return
+     */
+    public static List getWindAccount() {
+        Connection con = null;
+        PreparedStatement query = null;
+        ResultSet result = null;
+        String sql = "select account,password,post_url,doc_type from wind_account WHERE statue = 1;";
+        // 创建列表用于接收数据库返回的内容
+        ArrayList<DBAccount> accountList = new ArrayList<>();
+        try {
+            // 加载Mysql数据驱动
+            Class.forName("com.mysql.jdbc.Driver");
+            // 创建数据连接
+            con = DriverManager.getConnection("jdbc:mysql://210.34.58.8:3306/csrc_test?useUnicode=true&characterEncoding=UTF-8", "root", "123456");
+            query = con.prepareStatement(sql);
+            // 执行sql语句
+            result = query.executeQuery();
+            while (result.next()) {
+                DBAccount item = new DBAccount(result.getString("account"),result.getString("password"),result.getString("post_url"),result.getString("doc_type"));
+                accountList.add(item);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            try {
+                if (result != null) result.close();
+                if (query != null) query.close();
+                if (con != null) con.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+        return accountList;
     }
 
     /**

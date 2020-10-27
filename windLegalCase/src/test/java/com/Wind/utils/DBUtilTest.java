@@ -1,5 +1,6 @@
 package com.Wind.utils;
 
+import com.Wind.domain.DBAccount;
 import com.Wind.domain.DBCompany;
 import com.Wind.domain.ItemInfo;
 import org.junit.jupiter.api.Test;
@@ -50,4 +51,15 @@ class DBUtilTest {
         DBUtil.updateNewestDocDate(testCompany,WindId);
     }
 
+    @Test
+    void getWindAccount(){
+        System.out.println("开始测试");
+        List<DBAccount> accountList = DBUtil.getWindAccount();
+        if (accountList.size() == 0)
+            System.out.println("不存在有效账户");
+        else{
+            DBAccount windaccount = accountList.get(0);
+            System.out.println(windaccount.getAccount());
+        }
+    }
 }
